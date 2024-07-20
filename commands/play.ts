@@ -71,28 +71,25 @@ export default {
         return await interaction.editReply({ content: i18n.__("common.errorCommand") }).catch(console.error);
       else return interaction.reply({ content: i18n.__("common.errorCommand"), ephemeral: true }).catch(console.error);
     }
-
+    await interaction.deferReply();
     if (queue) {
       queue.enqueue(song);
-
-      return (interaction.channel as TextChannel)
-        .send({ content: i18n.__mf("play.queueAdded", { title: song.title, author: interaction.user.id }) })
+      await interaction.editReply({ content: i18n.__mf("play.queueAdded", { title: song.title, author: interaction.user.id }) })
         .catch(console.error);
+    } else {
+      const newQueue = new MusicQueue({
+        interaction,
+        textChannel: interaction.channel! as TextChannel,
+        connection: joinVoiceChannel({
+          channelId: channel.id,
+          guildId: channel.guild.id,
+          adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
+        })
+      });
+
+      bot.queues.set(interaction.guild!.id, newQueue);
+
+      newQueue.enqueue(song);
     }
-
-    const newQueue = new MusicQueue({
-      interaction,
-      textChannel: interaction.channel! as TextChannel,
-      connection: joinVoiceChannel({
-        channelId: channel.id,
-        guildId: channel.guild.id,
-        adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
-      })
-    });
-
-    bot.queues.set(interaction.guild!.id, newQueue);
-
-    newQueue.enqueue(song);
-    interaction.deleteReply().catch(console.error);
   }
 };
